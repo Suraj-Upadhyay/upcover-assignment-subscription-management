@@ -21,6 +21,17 @@ export class SubscriptionsService {
   ) {}
 
   async startSubscription(userId: string, planId: string) {
+    const existingSub = await this.subscriptionModel.findOne({
+      userId,
+      status: 'active',
+    });
+
+    if (existingSub) {
+      throw new BadRequestException(
+        'You already have an active subscription. Please manage it via your billing portal.',
+      );
+    }
+
     const user = await this.usersService.findById(userId);
     const plan = SUBSCRIPTION_PLANS.find((p) => p.id === planId);
 
