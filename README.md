@@ -1,73 +1,112 @@
-<p align="center">
-  <a href="http://nestjs.com/" target="blank"><img src="https://nestjs.com/img/logo-small.svg" width="200" alt="Nest Logo" /></a>
-</p>
+# 💳 NestJS + Stripe Subscription System
 
-[circleci-image]: https://img.shields.io/circleci/build/github/nestjs/nest/master?token=abc123def456
-[circleci-url]: https://circleci.com/gh/nestjs/nest
+This project is a high-performance implementation of a subscription-based API. It features a robust **Stripe Integration**, secure **JWT Authentication**, and a **Dockerized MongoDB** backend.
 
-  <p align="center">A progressive <a href="http://nodejs.org" target="_blank">Node.js</a> framework for building efficient and scalable server-side applications.</p>
-    <p align="center">
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/v/@nestjs/core.svg" alt="NPM Version" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/l/@nestjs/core.svg" alt="Package License" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/dm/@nestjs/common.svg" alt="NPM Downloads" /></a>
-<a href="https://circleci.com/gh/nestjs/nest" target="_blank"><img src="https://img.shields.io/circleci/build/github/nestjs/nest/master" alt="CircleCI" /></a>
-<a href="https://coveralls.io/github/nestjs/nest?branch=master" target="_blank"><img src="https://coveralls.io/repos/github/nestjs/nest/badge.svg?branch=master#9" alt="Coverage" /></a>
-<a href="https://discord.gg/G7Qnnhy" target="_blank"><img src="https://img.shields.io/badge/discord-online-brightgreen.svg" alt="Discord"/></a>
-<a href="https://opencollective.com/nest#backer" target="_blank"><img src="https://opencollective.com/nest/backers/badge.svg" alt="Backers on Open Collective" /></a>
-<a href="https://opencollective.com/nest#sponsor" target="_blank"><img src="https://opencollective.com/nest/sponsors/badge.svg" alt="Sponsors on Open Collective" /></a>
-  <a href="https://paypal.me/kamilmysliwiec" target="_blank"><img src="https://img.shields.io/badge/Donate-PayPal-ff3f59.svg"/></a>
-    <a href="https://opencollective.com/nest#sponsor"  target="_blank"><img src="https://img.shields.io/badge/Support%20us-Open%20Collective-41B883.svg" alt="Support us"></a>
-  <a href="https://twitter.com/nestframework" target="_blank"><img src="https://img.shields.io/twitter/follow/nestframework.svg?style=social&label=Follow"></a>
-</p>
-  <!--[![Backers on Open Collective](https://opencollective.com/nest/backers/badge.svg)](https://opencollective.com/nest#backer)
-  [![Sponsors on Open Collective](https://opencollective.com/nest/sponsors/badge.svg)](https://opencollective.com/nest#sponsor)-->
+---
 
-## Description
+## 🏗️ Technical Architecture
 
-[Nest](https://github.com/nestjs/nest) framework TypeScript starter repository.
+To ensure scalability and maintainability, the following design decisions were made:
 
-## Installation
+* **Module Encapsulation**: Stripe logic is isolated in a dedicated `StripeModule`. This prevents payment provider logic from leaking into core business modules.
+* **Async Synchronization**: We utilize Stripe Checkout metadata to pass the internal `userId`. This ensures that when the asynchronous Webhook fires, we can accurately map the event back to our MongoDB user record.
+* **Idempotency & Data Integrity**: 
+    * **Webhook Handling**: Uses MongoDB `findOneAndUpdate` with `upsert: true` to ensure the handler is **idempotent**. Duplicate network retries from Stripe will not corrupt the database state.
+    * **Double-Subscription Guard**: Implemented in `SubscriptionsService` to prevent users from initiating multiple active checkout sessions simultaneously.
+* **Security**: All subscription endpoints (excluding Webhooks) are protected by a `JwtAuthGuard`. Webhooks utilize Stripe's signature verification to ensure requests are authentic and untampered.
 
+---
+
+## 🛠️ Prerequisites
+
+Before starting, ensure you have the following installed:
+* **Node.js** (v18 or higher)
+* **Docker & Docker Compose**
+* **Stripe CLI** ([Official Install Guide](https://stripe.com/docs/stripe-cli))
+
+---
+
+## 🐳 Step 1: Infrastructure (Docker)
+
+The project uses Docker to provide a consistent database environment. 
+
+1.  **Start MongoDB and Mongo Express**:
+    ```bash
+    docker-compose up -d
+    ```
+    * **MongoDB**: Accessible at `localhost:27017`
+    * **Mongo Express (GUI)**: Accessible at `http://localhost:8081` (Login: `admin` / `password`)
+
+---
+
+## 🔑 Step 2: Environment Configuration
+
+Create a `.env` file in the root directory. You can use the following template as a guide:
+
+| Variable | Description |
+| :--- | :--- |
+| `PORT` | Local server port (default: `3000`) |
+| `MONGODB_URI` | `mongodb://admin:password@localhost:27017/subscription_db?authSource=admin` |
+| `JWT_SECRET` | Secure string for signing JWT tokens |
+| `STRIPE_SECRET_KEY` | Your Stripe Secret Key from the dashboard |
+| `STRIPE_WEBHOOK_SECRET` | Obtained from Stripe CLI (see Step 3) |
+| `FRONTEND_URL` | `http://localhost:3000` |
+
+---
+
+## 📡 Step 3: Stripe CLI & Webhook Setup
+
+Since Stripe cannot communicate with `localhost` directly, the Stripe CLI acts as a secure proxy to tunnel events.
+
+1.  **Login to Stripe**:
+    ```bash
+    stripe login
+    ```
+2.  **Start the Webhook Listener**:
+    ```bash
+    stripe listen --forward-to localhost:3000/api/v1/webhooks/stripe
+    ```
+3.  **Capture the Secret**:
+    The terminal will display: `Your webhook signing secret is whsec_....` 
+    Copy this value into your `.env` as `STRIPE_WEBHOOK_SECRET`.
+
+---
+
+## 🏃 Step 4: Run the Application
+
+1.  **Install dependencies**:
+    ```bash
+    npm install
+    ```
+2.  **Start in development mode**:
+    ```bash
+    npm run start:dev
+    ```
+3.  **API Documentation**:
+    Access the Swagger UI at `http://localhost:3000/api/docs`.
+
+---
+
+## 🧪 Testing the Flow
+
+1.  **Signup**: `POST /api/v1/auth/signup`. Creates a User in Mongo and a Customer in Stripe.
+2.  **Login**: `POST /api/v1/auth/login`. Copy the returned `access_token`.
+3.  **Get Plans**: `GET /api/v1/plans`. Note the ID (e.g., `basic`, `standard`, `premium`).
+4.  **Checkout**: `POST /api/v1/subscriptions/checkout`.
+    * **Headers**: `Authorization: Bearer <your_token>`
+    * **Body**: `{"planId": "standard"}`
+5.  **Pay**: Click the URL returned in the response. Use the test card: `4242 4242 4242 4242`.
+6.  **Verify**: Check your NestJS console. You should see:
+    `✅ Subscription activated for User: <user_id>`
+
+---
+
+## ✅ Unit Tests
+
+Run the unit test suite to verify core logic and guards:
 ```bash
-$ pnpm install
-```
+# Run tests
+npm run test
 
-## Running the app
-
-```bash
-# development
-$ pnpm run start
-
-# watch mode
-$ pnpm run start:dev
-
-# production mode
-$ pnpm run start:prod
-```
-
-## Test
-
-```bash
-# unit tests
-$ pnpm run test
-
-# e2e tests
-$ pnpm run test:e2e
-
-# test coverage
-$ pnpm run test:cov
-```
-
-## Support
-
-Nest is an MIT-licensed open source project. It can grow thanks to the sponsors and support by the amazing backers. If you'd like to join them, please [read more here](https://docs.nestjs.com/support).
-
-## Stay in touch
-
-- Author - [Kamil Myśliwiec](https://kamilmysliwiec.com)
-- Website - [https://nestjs.com](https://nestjs.com/)
-- Twitter - [@nestframework](https://twitter.com/nestframework)
-
-## License
-
-Nest is [MIT licensed](LICENSE).
+# Run tests in watch mode
+npm run test:watch
