@@ -7,7 +7,6 @@ import { ConflictException } from '@nestjs/common';
 
 describe('AuthService', () => {
   let service: AuthService;
-  let usersService: any;
   let stripeService: any;
 
   const mockUsersService = {
@@ -34,7 +33,6 @@ describe('AuthService', () => {
     }).compile();
 
     service = module.get<AuthService>(AuthService);
-    usersService = module.get<UsersService>(UsersService);
     stripeService = module.get<StripeService>(StripeService);
   });
 
