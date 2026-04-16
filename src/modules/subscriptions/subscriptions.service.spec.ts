@@ -80,7 +80,6 @@ describe('SubscriptionsService', () => {
 
   describe('handleSuccessfulPayment', () => {
     it('should update the subscription status in the database', async () => {
-      // Arrange
       const mockSession = {
         metadata: { userId: 'user123' },
         subscription: 'sub_123',

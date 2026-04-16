@@ -40,19 +40,16 @@ describe('AuthService', () => {
 
   describe('signup', () => {
     it('should throw ConflictException if email already exists', async () => {
-      // Arrange: mock existing user
       mockUsersService.findByEmail.mockResolvedValue({
         email: 'test@test.com',
       });
 
-      // Act & Assert (Removed 'name' property to match your SignupDto)
       await expect(
         service.signup({ email: 'test@test.com', password: '123' }),
       ).rejects.toThrow(ConflictException);
     });
 
     it('should create a Stripe customer and a new user on signup', async () => {
-      // Arrange
       mockUsersService.findByEmail.mockResolvedValue(null);
       mockStripeService.createCustomer.mockResolvedValue({
         id: 'cus_stripe_123',
@@ -62,13 +59,11 @@ describe('AuthService', () => {
         email: 'new@test.com',
       });
 
-      // Act (Removed 'name' property to match your SignupDto)
       const result = await service.signup({
         email: 'new@test.com',
         password: '123',
       });
 
-      // Assert
       expect(stripeService.createCustomer).toHaveBeenCalledWith('new@test.com');
       expect(mockUsersService.create).toHaveBeenCalledWith(
         expect.any(Object),
