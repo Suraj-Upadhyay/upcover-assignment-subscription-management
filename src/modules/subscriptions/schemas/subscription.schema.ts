@@ -5,18 +5,23 @@ export type SubscriptionDocument = Subscription & Document;
 
 @Schema({ timestamps: true })
 export class Subscription {
-  @Prop({ type: MongooseSchema.Types.ObjectId, ref: 'User', required: true })
+  @Prop({
+    type: MongooseSchema.Types.ObjectId,
+    ref: 'User',
+    required: true,
+    unique: true,
+  })
   userId: string;
 
   @Prop({ required: true })
-  planId: string;
+  planId: string; // 'basic', 'standard', or 'premium'
 
   @Prop({ required: true })
   stripeSubscriptionId: string;
 
   @Prop({
     required: true,
-    enum: ['active', 'canceled', 'incomplete', 'past_due'],
+    enum: ['active', 'past_due', 'canceled', 'incomplete'],
   })
   status: string;
 

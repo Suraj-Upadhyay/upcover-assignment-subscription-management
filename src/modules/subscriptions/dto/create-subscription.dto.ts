@@ -7,7 +7,7 @@ export enum PlanType {
   PREMIUM = 'premium',
 }
 
-export class CreateCheckoutDto {
+export class CreateSubscriptionDto {
   @ApiProperty({ enum: PlanType, example: PlanType.STANDARD })
   @IsEnum(PlanType)
   @IsNotEmpty()
