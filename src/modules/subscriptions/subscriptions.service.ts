@@ -1,4 +1,9 @@
-import { BadRequestException, Injectable, Logger } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  Logger,
+  NotFoundException,
+} from '@nestjs/common';
 import { StripeService } from '../stripe/stripe.service';
 import { UsersService } from '../users/users.service';
 import { SUBSCRIPTION_PLANS } from './plans.constants';
@@ -79,5 +84,31 @@ export class SubscriptionsService {
     );
 
     this.logger.log(`✅ Subscription activated for User: ${userId}`);
+  }
+
+  async getSubscription(userId: string) {
+    const sub = await this.subscriptionModel.findOne({ userId });
+    if (!sub)
+      throw new NotFoundException('No subscription found for this user');
+    return sub;
+  }
+
+  async cancelSubscription(userId: string) {
+    const sub = await this.subscriptionModel.findOne({
+      userId,
+      status: 'active',
+    });
+    if (!sub)
+      throw new BadRequestException('No active subscription found to cancel');
+
+    await this.stripeService.stripeInstance.subscriptions.update(
+      sub.stripeSubscriptionId,
+      { cancel_at_period_end: true },
+    );
+
+    sub.status = 'canceled';
+    await sub.save();
+
+    return { message: 'Subscription canceled successfully' };
   }
 }

@@ -28,4 +28,20 @@ export class SubscriptionsController {
   async success() {
     return '<h1>Success!</h1><p>Your subscription is active. You can close this window.</p>';
   }
+
+  @Get()
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Get current user subscription' })
+  async getMySubscription(@Req() req: any) {
+    return this.subService.getSubscription(req.user.id);
+  }
+
+  @Post('cancel')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Cancel active subscription' })
+  async cancel(@Req() req: any) {
+    return this.subService.cancelSubscription(req.user.id);
+  }
 }
