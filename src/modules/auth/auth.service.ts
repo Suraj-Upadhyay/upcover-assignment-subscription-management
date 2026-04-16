@@ -9,6 +9,7 @@ import * as bcrypt from 'bcrypt';
 import { UsersService } from '../users/users.service';
 import { SignupDto } from './dto/signup.dto';
 import { LoginDto } from './dto/login.dto';
+import { StripeService } from '../stripe/stripe.service';
 
 @Injectable()
 export class AuthService {
@@ -17,6 +18,7 @@ export class AuthService {
   constructor(
     private usersService: UsersService,
     private jwtService: JwtService,
+    private stripeService: StripeService,
   ) {}
 
   async signup(signupDto: SignupDto) {
@@ -28,12 +30,19 @@ export class AuthService {
       throw new ConflictException('Email already registered');
     }
 
+    const stripeCustomer = await this.stripeService.createCustomer(
+      signupDto.email,
+    );
+
     const hashedPassword = await bcrypt.hash(signupDto.password, 10);
 
-    const user = await this.usersService.create({
-      ...signupDto,
-      password: hashedPassword,
-    });
+    const user = await this.usersService.create(
+      {
+        ...signupDto,
+        password: hashedPassword,
+      },
+      stripeCustomer.id,
+    );
 
     this.logger.log(`User successfully registered: ${signupDto.email}`);
     return this.generateToken(user);

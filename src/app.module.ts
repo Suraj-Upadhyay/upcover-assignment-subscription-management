@@ -4,6 +4,7 @@ import { validate } from './config/env.validation';
 import { DatabaseModule } from './database/database.module';
 import { AuthModule } from './modules/auth/auth.module';
 import { UsersModule } from './modules/users/users.module';
+import { StripeModule } from './modules/stripe/stripe.module';
 
 @Module({
   imports: [
@@ -15,6 +16,7 @@ import { UsersModule } from './modules/users/users.module';
     DatabaseModule,
     AuthModule,
     UsersModule,
+    StripeModule,
   ],
 })
 export class AppModule {}

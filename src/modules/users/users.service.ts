@@ -10,10 +10,14 @@ export class UsersService {
 
   constructor(@InjectModel(User.name) private userModel: Model<UserDocument>) {}
 
-  async create(signupDto: SignupDto): Promise<UserDocument> {
+  async create(
+    signupDto: SignupDto,
+    stripeCustomerId: string,
+  ): Promise<UserDocument> {
     this.logger.log(`Creating new user in DB for email: ${signupDto.email}`);
     const newUser = new this.userModel({
       ...signupDto,
+      stripeCustomerId,
     });
     return newUser.save();
   }
