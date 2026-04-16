@@ -2,6 +2,7 @@ import {
   Injectable,
   Logger,
   InternalServerErrorException,
+  BadRequestException,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import * as StripeNode from 'stripe';
@@ -53,22 +54,33 @@ export class StripeService {
     priceId: string,
     userId: string,
   ) {
+    const baseUrl = this.configService.get('FRONTEND_URL');
+    const successUrl = `${baseUrl}/api/v1/subscriptions/success?session_id={CHECKOUT_SESSION_ID}`;
+    const cancelUrl = `${baseUrl}/api/v1/subscriptions/cancel`;
+
+    return await this.stripe.checkout.sessions.create({
+      customer: customerId,
+      mode: 'subscription',
+      payment_method_types: ['card'],
+      line_items: [{ price: priceId, quantity: 1 }],
+      success_url: successUrl,
+      cancel_url: cancelUrl,
+      metadata: { userId },
+    });
+  }
+
+  verifyWebhook(rawBody: Buffer, signature: string) {
     try {
-      this.logger.log(`Creating Checkout Session for User: ${userId}`);
-      return await this.stripe.checkout.sessions.create({
-        customer: customerId,
-        mode: 'subscription',
-        payment_method_types: ['card'],
-        line_items: [{ price: priceId, quantity: 1 }],
-        success_url: `${this.configService.get('FRONTEND_URL')}/success?session_id={CHECKOUT_SESSION_ID}`,
-        cancel_url: `${this.configService.get('FRONTEND_URL')}/cancel`,
-        metadata: { userId },
-      });
-    } catch (error) {
-      this.logger.error(`Checkout Session Error: ${error.message}`);
-      throw new InternalServerErrorException(
-        'Failed to create checkout session',
+      return this.stripeInstance.webhooks.constructEvent(
+        rawBody,
+        signature,
+        this.configService.get<string>('STRIPE_WEBHOOK_SECRET'),
       );
+    } catch (err) {
+      this.logger.error(
+        `Webhook Signature Verification Failed: ${err.message}`,
+      );
+      throw new BadRequestException(`Webhook Error: ${err.message}`);
     }
   }
 }

@@ -23,4 +23,9 @@ export class SubscriptionsController {
   async createCheckout(@Body() dto: CreateSubscriptionDto, @Req() req: any) {
     return this.subService.startSubscription(req.user.id, dto.planId);
   }
+
+  @Get('success')
+  async success() {
+    return '<h1>Success!</h1><p>Your subscription is active. You can close this window.</p>';
+  }
 }

@@ -8,6 +8,7 @@ import { UsersModule } from '../users/users.module';
 import { SubscriptionsService } from './subscriptions.service';
 import { SubscriptionsController } from './subscriptions.controller';
 import { PlansController } from './plans.controller';
+import { SubscriptionsWebhookController } from './subscriptions.webhook.controller';
 
 @Module({
   imports: [
@@ -17,6 +18,10 @@ import { PlansController } from './plans.controller';
     UsersModule,
   ],
   providers: [SubscriptionsService],
-  controllers: [SubscriptionsController, PlansController],
+  controllers: [
+    SubscriptionsController,
+    PlansController,
+    SubscriptionsWebhookController,
+  ],
 })
 export class SubscriptionsModule {}
